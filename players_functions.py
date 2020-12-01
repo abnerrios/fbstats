@@ -13,32 +13,6 @@ load_dotenv()
 
 logging.basicConfig(filename='cartolafc.log', filemode='w', level=logging.DEBUG)
 
-def get_player_links(squad):
-  players_id = []
-  link = squad['href']
-  rsp = requests.request('GET','https://fbref.com{}'.format(link))
-  content = rsp.content
-
-  if rsp.status_code<400:
-    logging.info('[+] {logtime} Requisição realizada com sucesso - {squad}.'.format(squad=squad['squad'], logtime=datetime.strftime(datetime.now(),'%c')))
-    content = rsp.content
-
-    soup = BeautifulSoup(content, 'html.parser')
-    stats_tables = soup.find_all(attrs={'class':'table_wrapper', 'id':re.compile('stats')})
-
-    for table in stats_tables:
-      try:
-        body = table.find('tbody')
-        rows = body.find_all('tr')
-
-        for row in rows:
-          if row:
-            th = row.find_all('th')
-            players_id.append({'player_id': th[0].find('a')['href'].split('/')[3], 'squad_id':squad['squad_id']})
-      except Exception as e:
-        logging.error('[+] {logtime} Erro ao coletar link dos jogadores: {error}.'.format(error=e,logtime=datetime.strftime(datetime.now(),'%c')))
-  return players_id
-
 def get_keeper_stats(player):
   player_id=player['player_id']
   url = 'https://fbref.com/en/players/{player_id}/matchlogs/s10072/keeper/'.format(player_id=player_id)

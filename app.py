@@ -13,12 +13,14 @@ logging.basicConfig(filename='cartolafc.log', filemode='w', level=logging.DEBUG)
 mongo = MongoClient(os.getenv('MONGO_URL'))
 
 Players = fbs.Players()
+Squads = fbs.Squads()
 
 squad = {
     'href':'/en/squads/422bb734/Atletico-Mineiro-Stats', 
     'squad': 'Atlético Mineiro',
     'squad_id': '422bb734'
 }
-players_list = Players.squadStats(squad)
 
-print(players_list)
+squad_players = Squads.players(squad)
+
+print(squad_players)
