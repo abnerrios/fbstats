@@ -1,0 +1,18 @@
+{
+  "tackles_won": 1.0,
+  "goals": 8.0,
+  "assists": 5.0,
+  "clean_sheets": 5.0,
+  "fouled": 0.5,
+  "shots_total": 0.8,
+  "saves": 1.2,
+  "shots_on_target": 1.2,
+  "pens_saved": 7.0,
+  "own_goals": -5.0,
+  "cards_red": -5.0,
+  "cards_yellow": -2.0,
+  "goals_against_gk": -2.0,
+  "fouls": -0.5,
+  "offsides": -0.5,
+  "pens_made": -0.5
+}

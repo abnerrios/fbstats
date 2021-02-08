@@ -1,0 +1,40 @@
+{
+  "competitions":[
+    {"title":"Campeonato Brasileiro 2020",
+      "comp_id": 24,
+      "season":"s10072",
+      "year": "2020",
+      "country": "Brazil"
+     },
+    {"title":"Primera División",
+     "comp_id": 45,
+     "season":"s10089",
+     "year": "2020",
+     "country": "Uruguay"
+    },
+    {"title":"Primera División",
+     "comp_id": 35,
+     "season":"s10074",
+     "year": "2020",
+     "country": "Chile"
+    },
+    {"title":"Super Liga",
+     "comp_id": 21,
+     "season":"s3211",
+     "year": "2019/2020",
+     "country": "Argentina"
+    },
+    {"title":"Primera A",
+     "comp_id": 41,
+     "season":"s10076",
+     "year": "",
+     "country": "Colombia"
+    },
+    {"title":"Major League Soccer",
+     "comp_id": 41,
+     "season":"s10090",
+     "year": "2020",
+     "country": "USA"
+    }
+  ]
+}
