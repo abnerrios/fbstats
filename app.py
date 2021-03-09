@@ -1,18 +1,15 @@
-import requests
 import os
-import sys
 import json
 from pymongo import MongoClient
-from datetime import datetime
 from dotenv import load_dotenv
 import logging
-import fbstats as fbs
+import fbcollect.fbstats as fbs
 from progress.bar import ChargingBar
 load_dotenv()
 
 logging.basicConfig(filename='cartolafc.log', filemode='w', level=logging.ERROR)
 
-json_comps = open('seetings/competitions.json','r')
+json_comps = open('./settings/competitions.json','r')
 comps = json.load(json_comps)
 competitions = comps['competitions']
 
@@ -24,12 +21,14 @@ db = mongo.footstats
 for comp in competitions:
   Players = fbs.Players(comp)
   Squads = fbs.Squads(comp)
+  print('Coletando dados de {}'.format(comp['title']))
 
   # coleta estatisticas da equipe a cada rodada
   squads_stats = Squads.squadStats()
   bar = ChargingBar('Inserindo squads no banco de dados: ', max=len(squads_stats))
   for squad in squads_stats:
     if 'date' in squad.keys() and squad['date']!='':
+      squad.update({'competition':comp['title'], 'governing_country':comp['country']})
       
       db.squads.find_one_and_update({'squad_id':squad['squad_id'],'date': squad['date']},{'$set': squad},upsert=True)
       bar.next()

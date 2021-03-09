@@ -1,20 +1,16 @@
 import requests
 from bs4 import BeautifulSoup
 import re
-import os
-import sys
-from pymongo import MongoClient
 from datetime import datetime
-from multiprocessing import Pool
 from dotenv import load_dotenv
 import logging
 import json
 load_dotenv()
 
-logging.basicConfig(filename='cartolafc.log', filemode='w', level=logging.ERROR)
+logging.basicConfig(filename='cartolafc.log', filemode='a', level=logging.ERROR)
 
 def parse_fields(squad):
-  meta_file = open('settings/meta.json')
+  meta_file = open('./settings/meta.json')
   meta_file = json.load(meta_file)
   meta = meta_file['squads']
   keys = list(squad.keys())
@@ -57,23 +53,24 @@ def get_squads(comp_id):
 
     for row in rows:
       squad = row.find(attrs={'data-stat':'squad'})
-      try:
-        squad_link = squad.find('a')['href']
-        position = row.find(attrs={'data-stat':'rank'}).text
-        infos = {td['data-stat']: re.sub(r'^\s','',td.text) for td in row.find_all('td')}
-        # dicionário contendo as informações do squad
-        squad_info = {
-          'href': squad_link,
-          'squad_id': squad_link.split('/')[3],
-          'position': position,
-          'league_name': league
-        }
+      if not squad.name=='th':
+        try:
+          squad_link = squad.find('a')['href']
+          position = row.find(attrs={'data-stat':'rank'}).text
+          infos = {td['data-stat']: re.sub(r'^\s','',td.text) for td in row.find_all('td')}
+          # dicionário contendo as informações do squad
+          squad_info = {
+            'href': squad_link,
+            'squad_id': squad_link.split('/')[3],
+            'position': position,
+            'league_name': league
+          }
 
-        squad_info.update(infos)
-        squads.append(squad_info)
+          squad_info.update(infos)
+          squads.append(squad_info)
 
-      except Exception as e:
-        logging.error('[+] {logtime} Erro ao coletar squads: {error}.'.format(error=e,logtime=datetime.strftime(datetime.now(),'%c')))
+        except Exception as e:
+          logging.error('[+] {logtime} Erro ao coletar squads: {error}.'.format(error=e,logtime=datetime.strftime(datetime.now(),'%c')))
 
     if len(squads)<20:
       logging.warning('[+] {logtime} Pode haver squads ausentes.'.format(logtime=datetime.strftime(datetime.now(),'%c')))

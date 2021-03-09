@@ -1,21 +1,16 @@
 import requests
-import pandas as pd
 from bs4 import BeautifulSoup
 import re
-import os
-import sys
-from pymongo import MongoClient
 from datetime import datetime
-from multiprocessing import Pool
 from dotenv import load_dotenv
 import logging
 import json
 load_dotenv()
 
-logging.basicConfig(filename='cartolafc.log', filemode='w', level=logging.ERROR)
+logging.basicConfig(filename='cartolafc.log', filemode='a', level=logging.ERROR)
 
 def parse_fields(player):
-  meta_file = open('./meta.json')
+  meta_file = open('./settings/meta.json')
   meta_file = json.load(meta_file)
   meta = meta_file['players']
 
@@ -103,7 +98,7 @@ def get_player_stats(player, season):
     info = soup.find('div',attrs={'itemtype':'https://schema.org/Person'})
 
     try:
-      born = info.find('span',attrs={'itemprop':'birthDate'})['data-birth']
+      born = info.find('span',attrs={'itemprop':'birthDate'})['data-birth'] if info.find('span',attrs={'itemprop':'birthDate'}) else None
       full_name = info.find('h1',attrs={'itemprop':'name'}).find('span').text
       field_area = re.findall(r'Position: ([GK|DF|MF|FW|-]+)|$',info.text)[0]
       position = re.findall(r'Position: [GK|DF|MF|FW|-]+\s(.+)|$',info.text)[0]

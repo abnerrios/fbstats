@@ -1,5 +1,5 @@
-import players_functions as pf
-import squads_functions as sf
+import fbcollect.players_functions as pf
+import fbcollect.squads_functions as sf
 from multiprocessing import Pool
 from functools import partial
 
@@ -43,6 +43,7 @@ class Squads():
 
 
   def squadStats(self):
+    """Get statics of squad on all match of competition."""
     squads = sf.get_squads(self.comp_id)
     squads_stats = []
     
@@ -58,6 +59,7 @@ class Squads():
     return squads_stats
     
   def players(self, squad):
+    """Get players info from related squad."""
     players = sf.get_players(squad)
 
     return players
