@@ -1,4 +1,4 @@
-drop table stage_squads;
+drop table if exists stage_squads;
 create table stage_squads(
   id  varchar(50),
   date date,
@@ -75,5 +75,7 @@ create table stage_squads(
   opponent_own_goals numeric(3,1),
   opponent_pens_conceded numeric(3,1),
   opponent_pens_won numeric(3,1),
-  opponent_tackles_won numeric(3,1)
+  opponent_tackles_won numeric(3,1),
+  competition varchar(50),
+  country varchar(50)
 )

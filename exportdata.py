@@ -8,7 +8,7 @@ load_dotenv()
 
 mongo = MongoClient(os.getenv('MONGO_CONNECTION_STRING'))
 
-db = mongo.footstats
+db = mongo.fbref
 
 # squads
 

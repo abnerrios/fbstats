@@ -11,6 +11,7 @@
     "result": "string",
     "squad": "string",
     "venue": "string",
+    "comp": "string",
     "possession": "int",
     "goals": "int",
     "goals_for": "int",

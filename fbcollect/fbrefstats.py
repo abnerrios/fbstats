@@ -1,7 +1,20 @@
-import fbcollect.players_functions as pf
-import fbcollect.squads_functions as sf
+import fbcollect.players as pf
+import fbcollect.squads as sf
+import fbcollect.competitions as cf
 from multiprocessing import Pool
 from functools import partial
+from urllib.parse import urljoin
+
+class Competitions():
+  def __init__(self):
+    self.urlbase = 'https://fbref.com/'
+    self.path = 'en/comps/'
+
+  def competitions(self):
+    url = urljoin(self.urlbase, self.path)
+    competitions = cf.get_competitions(url)
+
+    return competitions
 
 class Players():
   def __init__(self, comp):
@@ -27,14 +40,12 @@ class Players():
 
 class Squads():
   def __init__(self, comp):
-    self.comp_id = comp['comp_id']
-    self.governing_country = comp['country']
-    self.season = comp['season']
-    self.comp_title = comp['title']
-    self.year = comp['year']
+    self.urlbase = 'https://fbref.com/'
+    self.path = comp
+    self.url = urljoin(self.urlbase, self.path)
 
   def squads(self):
-    squads = sf.get_squads(self.comp_id)
+    squads = sf.get_squads(self.url)
 
     for squad in squads:
       squad.update({'country':self.governing_country})
@@ -44,17 +55,18 @@ class Squads():
 
   def squadStats(self):
     """Get statics of squad on all match of competition."""
-    squads = sf.get_squads(self.comp_id)
+    squads = sf.get_squads(self.url)
     squads_stats = []
     
-    get_stats = partial(sf.get_squad_stats, year=self.year, season=self.season)
+    get_stats = partial(sf.get_squad_comps, urlbase=self.urlbase)
 
     with Pool(5) as p:
       result_list = p.map(get_stats, squads)
     
     for squad in result_list:
       for stats in squad:
-        squads_stats.append(stats)
+        for stat in stats:
+          squads_stats.append(stat)
 
     return squads_stats
     
@@ -63,5 +75,3 @@ class Squads():
     players = sf.get_players(squad)
 
     return players
-
-

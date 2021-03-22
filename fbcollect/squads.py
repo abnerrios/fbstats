@@ -1,6 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 import re
+from urllib.parse import urljoin
 from datetime import datetime
 from dotenv import load_dotenv
 import logging
@@ -28,22 +29,20 @@ def parse_fields(squad):
 
   return squad
 
-def get_squads(comp_id):
+def get_squads(url):
   """
     Coleta dados dos clubes da liga.
   """
-
-  rsp = requests.request('GET','https://fbref.com/en/comps/{comp_id}'.format(comp_id=comp_id))
+  rsp = requests.request('GET',url)
   content = rsp.content
   squads = []
 
   if rsp.status_code<400:
     logging.info('[+] {logtime} Requisição de squads realizada com sucesso.'.format(logtime=datetime.strftime(datetime.now(),'%c')))
-    content = rsp.content
     
     soup = BeautifulSoup(content, 'html.parser')
     comp_info = soup.find(attrs={'id':'info'})
-    table_overall = soup.find(attrs={'class':'table_container', 'id': re.compile(r'div_results\d+_overall')})
+    table_overall = soup.find(attrs={'class':'table_container', 'id': re.compile(r'.+_overall')})
 
     # informações da competição
     comp_name = comp_info.find('h1', attrs={'itemprop':'name'}).text
@@ -84,66 +83,101 @@ def get_squads(comp_id):
 
   return squads
 
-def get_squad_stats(squad, season, year):
+
+def get_squad_stats(squad_id, urlbase, comp_ref):
   """
     Coleta estatísticas do clube em cada rodada.\n
     Utilize esse função como ponto de partida para coletar estatisticas dos jogadores através do campo href.\n\n
 
     :param squad: dict correspondente ao objeto squad retornado na função get_squads().
   """
-  squad_id=squad['squad_id']
   endpoints = ['schedule','shooting','keeper','misc']
   squad_league = []
 
   for endpoint in endpoints:
-    url = 'https://fbref.com/en/squads/{squad_id}/{year}/matchlogs/{season}/{endpoint}/'.format(squad_id=squad_id, year=year, season=season, endpoint=endpoint)
-    rsp = requests.request('GET',url)
+
+    url = urljoin(urlbase, comp_ref)
+    endpoint_url = urljoin(url, endpoint) 
+    rsp = requests.request('GET',endpoint_url)
     content = rsp.content
+    comps = []
 
     if rsp.status_code<400:
       content = rsp.content
       
       soup = BeautifulSoup(content, 'html.parser')
-      table = soup.find(attrs={'class':'stats_table'})
+      tables = soup.find_all(attrs={'class':'stats_table'})
 
-      try:
-        tbody = table.find('tbody')
-        rows = tbody.find_all('tr')
+      for table in tables:
+        table_id = table.attrs['id']
 
-        for row in rows:
-          squad_name = squad['squad']
+        try:
+          tbody = table.find('tbody')
+          rows = tbody.find_all('tr')
 
-          th = row.find('th')
-          date = th.text
+          for row in rows:
+            th = row.find('th')
+            date = th.text
 
-          if 'side-for' in row.attrs['class']:
-            stats = {td['data-stat']: re.sub(r'^\s','',td.text) for td in row.find_all('td')}
-          elif 'side-against' in row.attrs['class']:
-            stats = {'opponent_'+td['data-stat']: re.sub(r'^\s','',td.text) for td in row.find_all('td')}
-            stats['round'] = stats['opponent_round']
-            stats.pop('opponent_round',None)
-          # dicionário contendo as informações do squad
-          squad_round = {
-            'squad': squad_name,
-            'squad_id': squad_id,
-            'href': squad['href'],
-            'date': date
-          }
-          squad_round.update(stats)
+            if table_id=='matchlogs_against':
+              stats = {'opponent_'+td['data-stat']: re.sub(r'^\s','',td.text) for td in row.find_all('td')}
+            else:
+              stats = {td['data-stat']: re.sub(r'^\s','',td.text) for td in row.find_all('td')}
 
-          if 'date' in squad_round.keys():
-            if re.search(r'Matchweek',squad_round['round']):
-              squad_round['round_num'] = int(squad_round['round'].split(' ')[1])
+            # dicionário contendo as informações do squad
+            squad_round = {
+              'squad_id': squad_id,
+              'date': date
+            }
+            squad_round.update(stats)
 
-            # executa a função que ajusta os datatypes dos campos
-            squad_round_parsed = parse_fields(squad_round)
+            if 'date' in squad_round.keys():
+              # executa a função que ajusta os datatypes dos campos
+              squad_round_parsed = parse_fields(squad_round)
+              squad_league.append(squad_round_parsed)
 
-            squad_league.append(squad_round_parsed)
-
-      except Exception as e:
-        logging.error('[+] {logtime} Erro ao coletar squads: {error}.'.format(error=e,logtime=datetime.strftime(datetime.now(),'%c')))
+        except Exception as e:
+          logging.error('[+] {logtime} Erro ao coletar squads: {error}.'.format(error=e,logtime=datetime.strftime(datetime.now(),'%c')))
 
   return squad_league
+
+
+def get_squad_comps(squad, urlbase):
+  squad_ref = squad['href']
+  url = urljoin(urlbase, squad_ref)
+  rsp = requests.request('GET',url)
+  content = rsp.content
+  squad_id = squad['squad_id']
+  squad_stats = []
+  comps = []
+
+  if rsp.status_code<400:
+    content = rsp.content
+    
+    soup = BeautifulSoup(content, 'html.parser')
+    filters = soup.find('div',attrs={'class':'filter'})
+
+    if filters:
+      if re.search(r'Competitions',filters.text): 
+        options = filters.find_all('div')
+
+        for option in options:
+          if 'current' not in option.attrs['class']:
+            comp_ref = option.find('a').attrs['href']
+            comp_title = option.find('a').text
+
+            comp = {'competition': comp_title, 'href': comp_ref}
+            comps.append(comp)
+  
+        for comp in comps:
+          squad_id = squad['squad_id']
+          comp_ref = comp['href'].split('/')
+          href = '/'.join(comp_ref[:-2])+'/'
+          comp_stats = get_squad_stats(squad_id, urlbase, href)
+
+          squad_stats.append(comp_stats)
+
+  return squad_stats
 
 
 def get_players(squad):
@@ -160,7 +194,6 @@ def get_players(squad):
 
   if rsp.status_code<400:
     logging.info('[+] {logtime} Requisição realizada com sucesso - {squad}.'.format(squad=squad['squad'], logtime=datetime.strftime(datetime.now(),'%c')))
-    content = rsp.content
 
     soup = BeautifulSoup(content, 'html.parser')
     stats_tables = soup.find_all(attrs={'class':'table_wrapper', 'id':re.compile('stats')})

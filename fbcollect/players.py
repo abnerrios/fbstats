@@ -34,7 +34,6 @@ def get_keeper_stats(player, season):
   player_league = [] # array que armazenará todas as rodas do jogador e será retornada na função
 
   if rsp.status_code<400:
-    content = rsp.content
     
     soup = BeautifulSoup(content, 'html.parser')
     table = soup.find(attrs={'class':'stats_table'})
@@ -91,7 +90,6 @@ def get_player_stats(player, season):
   player_league = []
 
   if rsp.status_code<400:
-    content = rsp.content
     
     soup = BeautifulSoup(content, 'html.parser')
     table = soup.find(attrs={'class':'stats_table'})

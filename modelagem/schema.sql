@@ -15,6 +15,7 @@ drop table if exists tb_squad;
 create table tb_squad(
 	squad_id varchar(20),
 	squad_name varchar(50),
+  competition varchar(50),
 	country varchar(25),
 	primary key(squad_id)
 );
@@ -37,14 +38,15 @@ create table tb_squad_round(
   id_squad_round serial,
   round varchar(30),
   round_num smallint,
-  date date,
+  round_date date,
   dayofweek varchar(3),
   venue char(4),
   squad_id varchar(50),
   opponent varchar(50),
   referee varchar(70),
   result  char(1),
-  primary key (id_squad_round)
+  primary key (id_squad_round),
+  unique(squad_id, round_date)
 );
 
 create table tb_squad_match_stats(
@@ -116,7 +118,8 @@ create table tb_squad_match_stats(
   opponent_pens_conceded numeric(4,1),
   opponent_pens_won numeric(4,1),
   opponent_tackles_won numeric(4,1),
-	primary key(id_squad_match_stat)
+	primary key(id_squad_match_stat),
+  unique(squad_id, id_squad_round)
 );
 
 create table if not exists tb_player_match_stats (
@@ -213,7 +216,6 @@ create table tb_keeper_performance(
   saves numeric(4,1)
 );
 
-
 create table tb_squad_performance(
 	squad_id varchar(20),
   squad_name varchar(50),
@@ -242,8 +244,6 @@ create table tb_squad_performance(
 	opponent_shots_on_target numeric(4,1),
 	opponent_shots_total numeric(4,1)
 );
-
-
 
 alter table tb_player
 	add constraint fk_tb_squad_TO_tb_player
