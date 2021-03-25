@@ -26,7 +26,7 @@ for comp in competitions:
   squads_stats = Squads.squadStats()
   bar = ChargingBar('Inserindo squads no banco de dados: ', max=len(squads_stats))
   for squad in squads_stats:
-    squad.update({'league_name':comp['league_name'], 'governing_country':comp['country']})
+    squad.update({'governing_country':comp['country']})
     
     db.squads.find_one_and_update({'squad_id':squad['squad_id'],'date': squad['date']},{'$set': squad},upsert=True)
     bar.next()

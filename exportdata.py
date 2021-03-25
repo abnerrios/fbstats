@@ -1,6 +1,5 @@
 import os
 import pandas as pd
-import numpy as np
 from pymongo import MongoClient
 from dotenv import load_dotenv
 import json
@@ -23,14 +22,14 @@ df = pd.DataFrame(squads)
 df.to_csv('squads.csv',header=True, sep=';', encoding='utf-8',index=False)
 
 
-# players 
-cursor = db.players.find()
-players = []
+# # players 
+# cursor = db.players.find()
+# players = []
 
-for player in cursor:
-  players.append(player)
+# for player in cursor:
+#   players.append(player)
 
-df = pd.DataFrame(players)
+# df = pd.DataFrame(players)
 
-df.to_csv('players.csv',header=True, sep=';', encoding='utf-8',index=False)
+# df.to_csv('players.csv',header=True, sep=';', encoding='utf-8',index=False)
 

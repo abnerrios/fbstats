@@ -19,7 +19,7 @@ def parse_fields(squad):
   for key in keys:
     if key in meta.keys():
       if meta[key]=='int':
-        squad[key] = int(squad[key]) if squad[key]!='' else None
+        squad[key] = int(squad[key].split(' ')[0]) if squad[key]!='' else None
       elif meta[key]=='float':
         squad[key] = float(squad[key]) if squad[key]!='' else None
       elif squad[key]=='':
@@ -44,47 +44,40 @@ def get_squads(url):
     comp_info = soup.find(attrs={'id':'info'})
     table_overall = soup.find(attrs={'class':'table_container', 'id': re.compile(r'.+_overall')})
 
-    # informações da competição
-    comp_name = comp_info.find('h1', attrs={'itemprop':'name'}).text
-    league = re.subn(r'\n|\t','',comp_name)[0]
+    if table_overall:
+      # informações da competição
+      comp_name = comp_info.find('h1', attrs={'itemprop':'name'}).text
+      league = re.subn(r'\n|\t','',comp_name)[0]
+      
+      rows = table_overall.find_all('tr')
 
-    rows = table_overall.find_all('tr')
+      for row in rows:
+        squad = row.find(attrs={'data-stat':'squad'})
+        if not squad.name=='th' and squad.find('a'):
+          try:
+            squad_link = squad.find('a')['href']
+            position = row.find(attrs={'data-stat':'rank'}).text
+            infos = {td['data-stat']: re.sub(r'^\s','',td.text) for td in row.find_all('td')}
+            # dicionário contendo as informações do squad
+            squad_info = {
+              'href': squad_link,
+              'squad_id': squad_link.split('/')[3],
+              'position': position,
+              'league_name': league
+            }
 
-    for row in rows:
-      squad = row.find(attrs={'data-stat':'squad'})
-      if not squad.name=='th':
-        try:
-          squad_link = squad.find('a')['href']
-          position = row.find(attrs={'data-stat':'rank'}).text
-          infos = {td['data-stat']: re.sub(r'^\s','',td.text) for td in row.find_all('td')}
-          # dicionário contendo as informações do squad
-          squad_info = {
-            'href': squad_link,
-            'squad_id': squad_link.split('/')[3],
-            'position': position,
-            'league_name': league
-          }
+            squad_info.update(infos)
+            squads.append(squad_info)
 
-          squad_info.update(infos)
-          squads.append(squad_info)
-
-        except Exception as e:
-          logging.error('[+] {logtime} Erro ao coletar squads: {error}.'.format(error=e,logtime=datetime.strftime(datetime.now(),'%c')))
-
-    if len(squads)<20:
-      logging.warning('[+] {logtime} Pode haver squads ausentes.'.format(logtime=datetime.strftime(datetime.now(),'%c')))
-    elif len(squads)>20:
-      logging.warning('[+] {logtime} Pode haver sujeira nos registros.'.format(logtime=datetime.strftime(datetime.now(),'%c')))
-    else:
-      logging.info('[+] {logtime} Todos os squads encontrados.'.format(logtime=datetime.strftime(datetime.now(),'%c')))
-
+          except Exception as e:
+            logging.error('[+] {logtime} Erro ao coletar squads: {error}.'.format(error=e,logtime=datetime.strftime(datetime.now(),'%c')))
   else:
     logging.error('[+] {logtime} Erro ao executar requisição: status_code={status_code} reason={reason} '.format(status_code=rsp.status_code,reason=rsp.reason, logtime=datetime.strftime(datetime.now(),'%c')))
 
   return squads
 
 
-def get_squad_stats(squad_id, urlbase, comp_ref):
+def get_squad_stats(squad_id, urlbase, comp_ref, competition):
   """
     Coleta estatísticas do clube em cada rodada.\n
     Utilize esse função como ponto de partida para coletar estatisticas dos jogadores através do campo href.\n\n
@@ -100,7 +93,6 @@ def get_squad_stats(squad_id, urlbase, comp_ref):
     endpoint_url = urljoin(url, endpoint) 
     rsp = requests.request('GET',endpoint_url)
     content = rsp.content
-    comps = []
 
     if rsp.status_code<400:
       content = rsp.content
@@ -113,28 +105,34 @@ def get_squad_stats(squad_id, urlbase, comp_ref):
 
         try:
           tbody = table.find('tbody')
-          rows = tbody.find_all('tr')
+          if tbody:
+            rows = tbody.find_all('tr')
 
-          for row in rows:
-            th = row.find('th')
-            date = th.text
+            for row in rows:
+              th = row.find('th')
+              date = th.text
 
-            if table_id=='matchlogs_against':
-              stats = {'opponent_'+td['data-stat']: re.sub(r'^\s','',td.text) for td in row.find_all('td')}
-            else:
-              stats = {td['data-stat']: re.sub(r'^\s','',td.text) for td in row.find_all('td')}
+              # executa apenas se o formato de data estiver correto
+              date_pattern = r'\d+-\d+-\d+'
+              if re.match(date_pattern, date):
+                
+                if table_id=='matchlogs_against':
+                  stats = {'opponent_'+td['data-stat']: re.sub(r'^\s','',td.text) for td in row.find_all('td')}
+                else:
+                  stats = {td['data-stat']: re.sub(r'^\s','',td.text) for td in row.find_all('td')}
 
-            # dicionário contendo as informações do squad
-            squad_round = {
-              'squad_id': squad_id,
-              'date': date
-            }
-            squad_round.update(stats)
+                # dicionário contendo as informações do squad
+                squad_round = {
+                  'squad_id': squad_id,
+                  'date': date,
+                  'competition': competition
+                }
+                squad_round.update(stats)
 
-            if 'date' in squad_round.keys():
-              # executa a função que ajusta os datatypes dos campos
-              squad_round_parsed = parse_fields(squad_round)
-              squad_league.append(squad_round_parsed)
+                if 'date' in squad_round.keys():
+                  # executa a função que ajusta os datatypes dos campos
+                  squad_round_parsed = parse_fields(squad_round)
+                  squad_league.append(squad_round_parsed)
 
         except Exception as e:
           logging.error('[+] {logtime} Erro ao coletar squads: {error}.'.format(error=e,logtime=datetime.strftime(datetime.now(),'%c')))
@@ -171,10 +169,11 @@ def get_squad_comps(squad, urlbase):
   
         for comp in comps:
           squad_id = squad['squad_id']
+          competition = comp['competition']
           comp_ref = comp['href'].split('/')
           href = '/'.join(comp_ref[:-2])+'/'
-          comp_stats = get_squad_stats(squad_id, urlbase, href)
-
+          comp_stats = get_squad_stats(squad_id, urlbase, href, competition)
+          
           squad_stats.append(comp_stats)
 
   return squad_stats
