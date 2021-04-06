@@ -18,7 +18,6 @@ competitions = Competitions.competitions()
 
 for comp in competitions:
   comp_ref = comp['href']
-  #Players = Players(comp)
   Squads = fbs.Squads(comp_ref)
   print('Coletando dados de {}'.format(comp['league_name']))
 

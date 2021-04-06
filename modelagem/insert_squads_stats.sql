@@ -138,4 +138,4 @@ select
 from stage_squads as ss
 join tb_squad_round as sr
 	on ss.squad_id=sr.squad_id
-	and ss.round=sr.round;
+	and ss.date=sr.round_date;

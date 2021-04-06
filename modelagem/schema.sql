@@ -12,12 +12,37 @@ drop table if exists tb_squad_round;
 drop table if exists tb_player;
 drop table if exists tb_squad;
 
+create table tb_country(
+	country varchar(50),
+	alpha   varchar(3)
+);
+
+create table tb_competition(
+  competition_id serial,
+  competition varchar(50),
+  unique (competition)
+)
+
 create table tb_squad(
 	squad_id varchar(20),
 	squad_name varchar(50),
-  competition varchar(50),
-	country varchar(25),
+	country char(2),
 	primary key(squad_id)
+);
+
+create table tb_squad_round(
+  id_squad_round serial,
+  competition_id integer,
+  round varchar(60),
+  round_date date,
+  dayofweek varchar(3),
+  venue varchar(8),
+  squad_id varchar(50),
+  opponent varchar(50),
+  referee varchar(70),
+  result  char(1),
+  primary key (id_squad_round),
+  unique(squad_id, competition_id,round_date)
 );
 
 create table tb_player(
@@ -34,20 +59,6 @@ create table tb_player(
 	primary key(player_id)
 );
 
-create table tb_squad_round(
-  id_squad_round serial,
-  round varchar(30),
-  round_num smallint,
-  round_date date,
-  dayofweek varchar(3),
-  venue char(4),
-  squad_id varchar(50),
-  opponent varchar(50),
-  referee varchar(70),
-  result  char(1),
-  primary key (id_squad_round),
-  unique(squad_id, round_date)
-);
 
 create table tb_squad_match_stats(
 	id_squad_match_stat serial,

@@ -77,7 +77,7 @@ def get_squads(url):
   return squads
 
 
-def get_squad_stats(squad_id, urlbase, comp_ref, competition):
+def get_squad_stats(squad_id, squad_name, urlbase, comp_ref, competition):
   """
     Coleta estatísticas do clube em cada rodada.\n
     Utilize esse função como ponto de partida para coletar estatisticas dos jogadores através do campo href.\n\n
@@ -124,6 +124,7 @@ def get_squad_stats(squad_id, urlbase, comp_ref, competition):
                 # dicionário contendo as informações do squad
                 squad_round = {
                   'squad_id': squad_id,
+                  'squad': squad_name,
                   'date': date,
                   'competition': competition
                 }
@@ -168,11 +169,12 @@ def get_squad_comps(squad, urlbase):
             comps.append(comp)
   
         for comp in comps:
+          squad_name = squad['squad']
           squad_id = squad['squad_id']
           competition = comp['competition']
           comp_ref = comp['href'].split('/')
           href = '/'.join(comp_ref[:-2])+'/'
-          comp_stats = get_squad_stats(squad_id, urlbase, href, competition)
+          comp_stats = get_squad_stats(squad_id, squad_name, urlbase, href, competition)
           
           squad_stats.append(comp_stats)
 

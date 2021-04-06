@@ -2,20 +2,20 @@ drop table if exists stage_squads;
 create table stage_squads(
   id  varchar(50),
   date date,
-  round varchar(30),
   squad_id varchar(50),
   captain varchar(50),
+  competition varchar(50),
   dayofweek varchar(3),
   formation varchar(15),
   goals_against numeric(3,1),
   goals_for numeric(3,1),
+  governing_country varchar(50),
   opponent varchar(50),
-  possession numeric(3,1),
+  possession numeric(4,1),
   referee varchar(70),
   result char(1),
-  round_num numeric(3,1),
-  squad varchar(50),
-  venue char(4),
+  round varchar(60),
+  venue varchar(8),
   goals numeric(3,1),
   goals_per_shot numeric(3,2),
   goals_per_shot_on_target numeric(3,2),
@@ -76,6 +76,5 @@ create table stage_squads(
   opponent_pens_conceded numeric(3,1),
   opponent_pens_won numeric(3,1),
   opponent_tackles_won numeric(3,1),
-  competition varchar(50),
-  country varchar(50)
+  squad varchar(75)
 )
