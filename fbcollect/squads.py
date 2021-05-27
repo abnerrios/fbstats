@@ -84,7 +84,7 @@ def get_squad_stats(squad_id, squad_name, urlbase, comp_ref, competition):
 
     :param squad: dict correspondente ao objeto squad retornado na função get_squads().
   """
-  endpoints = ['schedule','shooting','keeper','misc']
+  endpoints = ['schedule','shooting','keeper','misc','passing','passing_types','gca','defense','possession']
   squad_league = []
 
   for endpoint in endpoints:
