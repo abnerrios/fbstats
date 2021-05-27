@@ -10,15 +10,19 @@ logging.basicConfig(filename='cartolafc.log', filemode='w', level=logging.ERROR)
 
 # define a conexão com o servidor de mongodb definido no arquivo .env
 mongo = MongoClient(os.getenv('MONGO_CONNECTION_STRING'))
-db = mongo.fbref
+db = mongo.footstats
 
 Competitions = fbs.Competitions()
 competitions = Competitions.competitions()
 
 for comp in competitions:
   comp_ref = comp['href']
+  
+  if comp['league_name']=='La Liga':
+    print('aaaaa')
   Squads = fbs.Squads(comp_ref)
   print('Coletando dados de {}'.format(comp['league_name']))
+
 
   # coleta estatisticas da equipe a cada rodada
   squads_stats = Squads.squadStats()

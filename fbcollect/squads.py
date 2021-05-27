@@ -90,9 +90,11 @@ def get_squad_stats(squad_id, squad_name, urlbase, comp_ref, competition):
   for endpoint in endpoints:
 
     url = urljoin(urlbase, comp_ref)
+    url = urljoin(url,'matchlogs/all_comps/')
     endpoint_url = urljoin(url, endpoint) 
     rsp = requests.request('GET',endpoint_url)
     content = rsp.content
+    tips = {}
 
     if rsp.status_code<400:
       content = rsp.content
@@ -102,6 +104,18 @@ def get_squad_stats(squad_id, squad_name, urlbase, comp_ref, competition):
 
       for table in tables:
         table_id = table.attrs['id']
+        thead = table.find('thead')
+
+        if thead:
+          for th in thead.find_all('th'):
+            try:
+              data_stat = th['data-stat']
+              data_tip = th['data-tip']
+              tips.update({data_stat: data_tip})
+            except KeyError:
+              pass
+
+          #logging.info(str(tips))
 
         try:
           tbody = table.find('tbody')
