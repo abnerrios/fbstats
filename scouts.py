@@ -1,13 +1,9 @@
-import requests
 import os
-import sys
 from pymongo import MongoClient
-from datetime import datetime
 from dotenv import load_dotenv
 from multiprocessing import Pool
 import logging
 import json
-import fbcollect.fbstats as fbs
 load_dotenv()
 
 logging.basicConfig(filename='cartolafc.log', filemode='w', level=logging.ERROR)

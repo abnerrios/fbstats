@@ -11,7 +11,7 @@
     "result": "string",
     "squad": "string",
     "venue": "string",
-    "competition": "string",
+    "comp": "string",
     "possession": "int",
     "goals": "int",
     "goals_for": "int",
@@ -79,7 +79,7 @@
     "round_num": "int",
     "xg_for":"float",
     "xg_against": "float",
-    "attendance": "attendance",
+    "attendance": "float",
     "average_shot_distance":"float",
     "shots_free_kicks":"float",
     "npxg": "float",
@@ -122,7 +122,6 @@
     "passes_into_penalty_area": "int",
     "crosses_into_penalty_area": "int",
     "progressive_passes": "int",
-
     "passes_live": "int",
     "passes_dead": "int",
     "passes_free_kicks": "int",
@@ -159,7 +158,6 @@
     "gca_shots": "int",
     "gca_fouled": "int",
     "gca_defense": "int",
-
     "tackles": "int",
     "tackles_def_3rd": "int",
     "tackles_mid_3rd": "int",
@@ -181,7 +179,6 @@
     "tackles_interceptions": "int",
     "clearances": "int",
     "errors": "int",
-
     "touches": "int",
     "touches_def_pen_area": "int",
     "touches_def_3rd": "int",
