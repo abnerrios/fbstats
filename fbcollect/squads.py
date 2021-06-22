@@ -7,23 +7,20 @@ from dotenv import load_dotenv
 import logging
 import json
 load_dotenv()
-
 logging.basicConfig(filename='cartolafc.log', filemode='a', level=logging.ERROR)
+html_parser = 'html.parser'
 
 def parse_fields(squad):
   meta_file = open('./settings/meta.json')
   meta_file = json.load(meta_file)
-  meta = meta_file['squads']
-  keys = list(squad.keys())
+  meta = meta_file.get('squads')
 
-  for key in keys:
-    if key in meta.keys():
+  for key in list(squad.keys()):
+    if meta.get(key):
       if meta[key]=='int':
         squad[key] = int(squad[key].split(' ')[0]) if squad[key]!='' else None
       elif meta[key]=='float':
         squad[key] = float(squad[key]) if squad[key]!='' else None
-      elif squad[key]=='':
-        squad[key] = None
     else:
       squad.pop(key,None)
 
@@ -40,7 +37,7 @@ def get_squads(url):
   if rsp.status_code<400:
     logging.info('[+] {logtime} Requisição de squads realizada com sucesso.'.format(logtime=datetime.strftime(datetime.now(),'%c')))
     
-    soup = BeautifulSoup(content, 'html.parser')
+    soup = BeautifulSoup(content, html_parser)
     comp_info = soup.find(attrs={'id':'info'})
     table_overall = soup.find(attrs={'class':'table_container', 'id': re.compile(r'.+_overall')})
 
@@ -93,7 +90,7 @@ def get_squad_stats(squad_id, squad_name, urlbase, attr_ref):
   if rsp.status_code<400:
     content = rsp.content
     
-    soup = BeautifulSoup(content, 'html.parser')
+    soup = BeautifulSoup(content, html_parser)
     all_matchlogs = soup.find('div',attrs={'id': 'all_matchlogs'})
     tables = all_matchlogs.find_all(attrs={'class':'stats_table'})
 
@@ -153,15 +150,13 @@ def get_squad_comps(squad, urlbase):
   squad_ref = squad['href']
   url = urljoin(urlbase, squad_ref)
   rsp = requests.request('GET',url)
-  content = rsp.content
-  squad_id = squad['squad_id']
   squad_stats = []
   attrs = []
 
   if rsp.status_code<400:
     content = rsp.content
     
-    soup = BeautifulSoup(content, 'html.parser')
+    soup = BeautifulSoup(content, html_parser)
     filters = soup.find_all('div',attrs={'class':'filter'})
 
     for filter in filters:
@@ -200,7 +195,7 @@ def get_players(squad):
   if rsp.status_code<400:
     logging.info('[+] {logtime} Requisição realizada com sucesso - {squad}.'.format(squad=squad['squad'], logtime=datetime.strftime(datetime.now(),'%c')))
 
-    soup = BeautifulSoup(content, 'html.parser')
+    soup = BeautifulSoup(content, html_parser)
     stats_tables = soup.find_all(attrs={'class':'table_wrapper', 'id':re.compile('stats')})
 
     for table in stats_tables:

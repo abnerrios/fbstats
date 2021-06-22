@@ -23,7 +23,7 @@ class Players():
     self.season = comp['season']
     self.comp_title = comp['title']
 
-  def playersStats(self, squad):
+  def players_stats(self, squad):
     players_id = sf.get_players(squad)
     players = []
 
@@ -53,7 +53,7 @@ class Squads():
     return squads
 
 
-  def squadStats(self):
+  def squad_stats(self):
     """Get statics of squad on all match of competition."""
     squads = sf.get_squads(self.url)
     squads_stats = []

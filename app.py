@@ -20,7 +20,6 @@ for comp in competitions:
   Squads = fbs.Squads(comp_ref)
   print('Coletando dados de {}'.format(comp['league_name']))
 
-
   # coleta estatisticas da equipe a cada rodada
   squads_stats = Squads.squadStats()
   bar = ChargingBar('Inserindo squads no banco de dados: ', max=len(squads_stats))

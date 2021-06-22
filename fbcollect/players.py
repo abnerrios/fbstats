@@ -12,16 +12,14 @@ logging.basicConfig(filename='cartolafc.log', filemode='a', level=logging.ERROR)
 def parse_fields(player):
   meta_file = open('./settings/meta.json')
   meta_file = json.load(meta_file)
-  meta = meta_file['players']
+  meta = meta_file.get('players')
 
   for key in player.keys():
-    if key in meta.keys():
+    if meta.get(key):
       if meta[key]=='int':
         player[key] = int(player[key]) if player[key]!='' else None
       elif meta[key]=='float':
         player[key] = float(player[key]) if player[key]!='' else None
-    elif player[key]=='':
-      player[key] = None
 
   return player
 
