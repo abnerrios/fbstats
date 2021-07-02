@@ -26,7 +26,7 @@ def parse_fields(player):
 
 def get_keeper_stats(player, season):
   player_id=player['player_id']
-  url = 'https://fbref.com/en/players/{player_id}/matchlogs/{season}/keeper/'.format(player_id=player_id, season=season)
+  url = f'https://fbref.com/en/players/{player_id}/matchlogs/{season}/keeper/'
   rsp = requests.request('GET',url)
   content = rsp.content
   player_league = [] # array que armazenará todas as rodas do jogador e será retornada na função
@@ -82,7 +82,7 @@ def get_keeper_stats(player, season):
 
 def get_player_stats(player, season):
   player_id=player['player_id']
-  url = 'https://fbref.com/en/players/{player_id}/matchlogs/{season}/summary/'.format(player_id=player_id, season=season)
+  url = f'https://fbref.com/en/players/{player_id}/matchlogs/{season}/summary/'
   rsp = requests.request('GET',url)
   content = rsp.content
   player_league = []

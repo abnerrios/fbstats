@@ -189,7 +189,7 @@ def get_players(squad):
   """
   players_id = []
   link = squad['href']
-  rsp = requests.request('GET','https://fbref.com{}'.format(link))
+  rsp = requests.request('GET',f'https://fbref.com{link}')
   content = rsp.content
 
   if rsp.status_code<400:
