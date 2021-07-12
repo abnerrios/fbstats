@@ -10,7 +10,7 @@ load_dotenv()
 logging.basicConfig(filename='cartolafc.log', filemode='a', level=logging.ERROR)
 html_parser = 'html.parser'
 
-def parse_fields(squad):
+def parse_fields(squad) -> dict:
   meta_file = open('./settings/meta.json')
   meta_file = json.load(meta_file)
   meta = meta_file.get('squads')
@@ -26,7 +26,7 @@ def parse_fields(squad):
 
   return squad
 
-def get_squads(url):
+def get_squads(url) -> list:
   """
     Coleta dados dos clubes da liga.
   """
@@ -74,7 +74,7 @@ def get_squads(url):
   return squads
 
 
-def get_squad_stats(squad_id, squad_name, urlbase, attr_ref):
+def get_squad_stats(squad_id, squad_name, urlbase, attr_ref) -> list:
   """
     Coleta estatísticas do clube em cada rodada.\n
     Utilize esse função como ponto de partida para coletar estatisticas dos jogadores através do campo href.\n\n
@@ -146,7 +146,7 @@ def get_squad_stats(squad_id, squad_name, urlbase, attr_ref):
   return squad_attr
 
 
-def get_squad_comps(squad, urlbase):
+def get_squad_comps(squad, urlbase) -> list:
   squad_ref = squad['href']
   url = urljoin(urlbase, squad_ref)
   rsp = requests.request('GET',url)
@@ -180,7 +180,7 @@ def get_squad_comps(squad, urlbase):
   return squad_stats
 
 
-def get_players(squad):
+def get_players(squad) -> list:
   """
     Coleta informações básicas sobre os jogadores do clube.\n
     Utilize esse função como ponto de partida para coletar estatisticas dos jogadores através do campo href.\n\n

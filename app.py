@@ -9,23 +9,27 @@ load_dotenv()
 logging.basicConfig(filename='footstats.log', filemode='w', level=logging.ERROR)
 
 # define a conexão com o servidor de mongodb definido no arquivo .env
-mongo = MongoClient(os.getenv('MONGO_CONNECTION_STRING'))
-db = mongo.dbfoot
 
-Competitions = fbs.Competitions()
-competitions = Competitions.competitions()
+def main():
+  mongo = MongoClient(host='localhost', port=27017)
+  db = mongo.dbfoot
 
-for comp in competitions:
-  comp_ref = comp['href']
-  Squads = fbs.Squads(comp_ref)
-  print('Coletando dados de {}'.format(comp['league_name']))
+  competitions = fbs.Competitions().competitions()
 
-  # coleta estatisticas da equipe a cada rodada
-  squads_stats = Squads.squadStats()
-  bar = ChargingBar('Inserindo squads no banco de dados: ', max=len(squads_stats))
-  for squad in squads_stats:
-    squad.update({'governing_country':comp['country']})
+  for comp in competitions:
+    comp_ref = comp['href']
+    squads = fbs.Squads(comp_ref)
+    print('Coletando dados de {}'.format(comp['league_name']))
     
-    db.squads.find_one_and_update({'squad_id':squad['squad_id'],'date': squad['date']},{'$set': squad},upsert=True)
-    bar.next()
-  bar.finish()
+    # coleta estatisticas da equipe a cada rodada
+    squads_stats = squads.squad_stats()
+    bar = ChargingBar('Inserindo squads no banco de dados: ', max=len(squads_stats))
+    for squad in squads_stats:
+      squad.update({'governing_country':comp['country']})
+      
+      db.squads.find_one_and_update({'squad_id':squad['squad_id'],'date': squad['date']},{'$set': squad},upsert=True)
+      bar.next()
+    bar.finish()
+
+if __name__=='__main__':
+  main()

@@ -29,7 +29,7 @@ class Players():
 
     get_stats = partial(pf.get_player_stats,season=self.season)
 
-    with Pool(5) as p:
+    with Pool(3) as p:
       players_stats = p.map(get_stats, players_id)
 
     for player in players_stats:
@@ -46,10 +46,6 @@ class Squads():
 
   def squads(self):
     squads = sf.get_squads(self.url)
-
-    for squad in squads:
-      squad.update({'country':self.governing_country})
-
     return squads
 
 
@@ -60,7 +56,7 @@ class Squads():
     
     get_stats = partial(sf.get_squad_comps, urlbase=self.urlbase)
 
-    with Pool(5) as p:
+    with Pool(3) as p:
       result_list = p.map(get_stats, squads)
     
     for squad in result_list:
