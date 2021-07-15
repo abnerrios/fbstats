@@ -7,7 +7,7 @@ import logging
 import json
 load_dotenv()
 
-logging.basicConfig(filename='cartolafc.log', filemode='a', level=logging.ERROR)
+logging.basicConfig(filename='footstats.log', filemode='a', level=logging.ERROR)
 
 def parse_fields(player):
   meta_file = open('./settings/meta.json')

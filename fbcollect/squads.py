@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 import logging
 import json
 load_dotenv()
-logging.basicConfig(filename='cartolafc.log', filemode='a', level=logging.ERROR)
+logging.basicConfig(filename='footstats.log', filemode='a', level=logging.ERROR)
 html_parser = 'html.parser'
 
 def parse_fields(squad) -> dict:
