@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 import logging
 import json
 load_dotenv()
-logging.basicConfig(filename='footstats.log', filemode='a', level=logging.ERROR)
+logging.basicConfig(filename='footstats.log', filemode='a', level=logging.ERROR, format='%(asctime)s %(message)s', datefmt='%Y/%m/%d %I:%M:%S %p')
 html_parser = 'html.parser'
 
 def parse_fields(squad) -> dict:
@@ -16,11 +16,14 @@ def parse_fields(squad) -> dict:
   meta = meta_file.get('squads')
 
   for key in list(squad.keys()):
-    if meta.get(key):
-      if meta[key]=='int':
-        squad[key] = int(squad[key].split(' ')[0]) if squad[key]!='' else None
-      elif meta[key]=='float':
-        squad[key] = float(squad[key]) if squad[key]!='' else None
+    to_parse = squad.get(key)
+    # verify if the field has on metadata and if need a transformation
+    if meta.get(key) and to_parse!='':
+      if meta.get(key)=='int':
+        squad[key] = int(to_parse.split(' ')[0])
+      
+      if meta.get(key)=='float':
+        squad[key] = float(to_parse)
     else:
       squad.pop(key,None)
 
@@ -35,41 +38,41 @@ def get_squads(url) -> list:
   squads = []
 
   if rsp.status_code<400:
-    logging.info('[+] {logtime} Requisição de squads realizada com sucesso.'.format(logtime=datetime.strftime(datetime.now(),'%c')))
-    
-    soup = BeautifulSoup(content, html_parser)
-    comp_info = soup.find(attrs={'id':'info'})
-    table_overall = soup.find(attrs={'class':'table_container', 'id': re.compile(r'.+_overall')})
-
-    if table_overall:
-      # informações da competição
-      comp_name = comp_info.find('h1', attrs={'itemprop':'name'}).text
-      league = re.subn(r'\n|\t','',comp_name)[0]
+    try:
+      logging.info('[+] Requisição de squads realizada com sucesso.')
       
-      rows = table_overall.find_all('tr')
+      soup = BeautifulSoup(content, html_parser)
+      comp_info = soup.find(attrs={'id':'info'})
+      table_overall = soup.find(attrs={'class':'table_container', 'id': re.compile(r'.+_overall')})
 
-      for row in rows:
-        squad = row.find(attrs={'data-stat':'squad'})
-        if not squad.name=='th' and squad.find('a'):
-          try:
-            squad_link = squad.find('a')['href']
-            position = row.find(attrs={'data-stat':'rank'}).text
-            infos = {td['data-stat']: re.sub(r'^\s','',td.text) for td in row.find_all('td')}
-            # dicionário contendo as informações do squad
-            squad_info = {
-              'href': squad_link,
-              'squad_id': squad_link.split('/')[3],
-              'position': position,
-              'league_name': league
-            }
+      if table_overall:
+        # informações da competição
+        comp_name = comp_info.find('h1', attrs={'itemprop':'name'}).text
+        league = re.subn(r'\n|\t','',comp_name)[0]
+        
+        rows = table_overall.find_all('tr')
 
-            squad_info.update(infos)
-            squads.append(squad_info)
+        for row in rows:
+          squad = row.find(attrs={'data-stat':'squad'})
+          if not squad.name=='th' and squad.find('a'):
+              squad_link = squad.find('a')['href']
+              position = row.find(attrs={'data-stat':'rank'}).text
+              infos = {td['data-stat']: re.sub(r'^\s','',td.text) for td in row.find_all('td')}
+              # dicionário contendo as informações do squad
+              squad_info = {
+                'href': squad_link,
+                'squad_id': squad_link.split('/')[3],
+                'position': position,
+                'league_name': league
+              }
 
-          except Exception as e:
-            logging.error('[+] {logtime} Erro ao coletar squads: {error}.'.format(error=e,logtime=datetime.strftime(datetime.now(),'%c')))
+              squad_info.update(infos)
+  
+              squads.append(squad_info)
+    except Exception as e:
+      logging.error(f'[+] Erro ao coletar squads: {e}.')
   else:
-    logging.error('[+] {logtime} Erro ao executar requisição: status_code={status_code} reason={reason} '.format(status_code=rsp.status_code,reason=rsp.reason, logtime=datetime.strftime(datetime.now(),'%c')))
+    logging.error(f'[+] Erro ao executar requisição: status_code={rsp.status_code} reason={rsp.reason}')
 
   return squads
 
@@ -85,31 +88,17 @@ def get_squad_stats(squad_id, squad_name, urlbase, attr_ref) -> list:
   url = urljoin(urlbase, attr_ref)
   rsp = requests.request('GET',url)
   content = rsp.content
-  tips = {}
 
   if rsp.status_code<400:
-    content = rsp.content
-    
-    soup = BeautifulSoup(content, html_parser)
-    all_matchlogs = soup.find('div',attrs={'id': 'all_matchlogs'})
-    tables = all_matchlogs.find_all(attrs={'class':'stats_table'})
+    try:
+      content = rsp.content
+      
+      soup = BeautifulSoup(content, html_parser)
+      all_matchlogs = soup.find('div',attrs={'id': 'all_matchlogs'})
+      tables = all_matchlogs.find_all(attrs={'class':'stats_table'})
 
-    for table in tables:
-      table_id = table.attrs['id']
-      thead = table.find('thead')
-
-      if thead:
-        for th in thead.find_all('th'):
-          try:
-            data_stat = th['data-stat']
-            data_tip = th['data-tip']
-            tips.update({data_stat: data_tip})
-          except KeyError:
-            pass
-
-        logging.info(json.dumps(tips))
-
-      try:
+      for table in tables:
+        table_id = table.attrs['id']
         tbody = table.find('tbody')
         if tbody:
           rows = tbody.find_all('tr')
@@ -140,8 +129,10 @@ def get_squad_stats(squad_id, squad_name, urlbase, attr_ref) -> list:
                 squad_round_parsed = parse_fields(squad_round)
                 squad_attr.append(squad_round_parsed)
 
-      except Exception as e:
-        logging.error('[+] {logtime} Erro ao coletar squads: {error}.'.format(error=e,logtime=datetime.strftime(datetime.now(),'%c')))
+    except Exception as e:
+      logging.error(f'[+] Erro ao coletar squads: {e}.')
+  else:
+    logging.error(f'[+] Erro ao executar requisição: status_code={rsp.status_code} reason={rsp.reason}')
 
   return squad_attr
 
