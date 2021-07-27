@@ -1,3 +1,4 @@
+from types import new_class
 import fbcollect.players as pf
 import fbcollect.squads as sf
 import fbcollect.competitions as cf
@@ -45,26 +46,14 @@ class Squads():
     self.url = urljoin(self.urlbase, self.path)
 
   def squads(self):
-    squads = sf.get_squads(self.url)
-    return squads
-
-
-  def squad_stats(self):
     """Get statics of squad on all match of competition."""
     squads = sf.get_squads(self.url)
-    squads_stats = []
-    
     get_stats = partial(sf.get_squad_comps, urlbase=self.urlbase)
 
     with Pool(3) as p:
       result_list = p.map(get_stats, squads)
-    
-    for squad in result_list:
-      for stats in squad:
-        for stat in stats:
-          squads_stats.append(stat)
 
-    return squads_stats
+    return result_list
     
   def players(self, squad):
     """Get players info from related squad."""

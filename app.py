@@ -14,7 +14,7 @@ def main():
   mongohost = os.getenv('MONGODB_HOST')
   mongoport = int(os.getenv('MONGODB_PORT'))
   mongo = MongoClient(host=mongohost, port=mongoport)
-  db = mongo.dbfoot
+  db = mongo.fbstats
 
   competitions = fbs.Competitions().competitions()
 
@@ -24,12 +24,17 @@ def main():
     print('Coletando dados de {}'.format(comp.get('league_name')))
     
     # coleta estatisticas da equipe a cada rodada
-    squads_stats = squads.squad_stats()
+    squads_stats = squads.squads()
     bar = ChargingBar('Inserindo squads no banco de dados: ', max=len(squads_stats))
     for squad in squads_stats:
-      squad.update({'governing_country':comp.get('country')})
+      db.squads.find_one_and_update({'squad_id':squad.id}, {'$set': {'squad_id': squad.id, 'name': squad.name,'country':comp.get('country').upper()}}, upsert=True)
+
+      for stats in squad.stats:
+        db.squad_stats.find_one_and_update({'squad_id':squad.id,'date': stats.get('date'), 'stats_type':stats.get('stats_type')},{'$set': stats},upsert=True)
       
-      db.squads.find_one_and_update({'squad_id':squad.get('squad_id'),'date': squad.get('date')},{'$set': squad},upsert=True)
+      for player in squad.players:
+        db.players.find_one_and_update({'player_id': player.get('player_id')},{'$set': player}, upsert=True)
+
       bar.next()
     bar.finish()
 

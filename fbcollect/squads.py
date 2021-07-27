@@ -10,24 +10,29 @@ load_dotenv()
 logging.basicConfig(filename='footstats.log', filemode='a', level=logging.ERROR, format='%(asctime)s %(message)s', datefmt='%Y/%m/%d %I:%M:%S %p')
 html_parser = 'html.parser'
 
-def parse_fields(squad) -> dict:
+class Squad:
+  def __init__(self) -> None:  
+    self.name = str
+    self.id = str
+    self.stats = []
+    self.players = []
+
+def parse_fields(entity, type) -> dict:
   meta_file = open('./settings/meta.json')
   meta_file = json.load(meta_file)
-  meta = meta_file.get('squads')
+  meta = meta_file.get(type)
+  pattern = r'^\d+\.'
 
-  for key in list(squad.keys()):
-    to_parse = squad.get(key)
+  for key in list(entity.keys()):
+    to_parse = entity.get(key)
     # verify if the field has on metadata and if need a transformation
     if meta.get(key) and to_parse!='':
-      if meta.get(key)=='int':
-        squad[key] = int(to_parse.split(' ')[0])
-      
-      if meta.get(key)=='float':
-        squad[key] = float(to_parse)
-    else:
-      squad.pop(key,None)
+      if re.match(pattern, to_parse):
+        entity[key] = float(to_parse) 
+      else:
+        entity[key] = int(re.subn(r'\,','',to_parse.split(' ')[0])[0])
 
-  return squad
+  return entity
 
 def get_squads(url) -> list:
   """
@@ -77,7 +82,7 @@ def get_squads(url) -> list:
   return squads
 
 
-def get_squad_stats(squad_id, squad_name, urlbase, attr_ref) -> list:
+def get_squad_stats(urlbase, attr_ref) -> list:
   """
     Coleta estatísticas do clube em cada rodada.\n
     Utilize esse função como ponto de partida para coletar estatisticas dos jogadores através do campo href.\n\n
@@ -118,15 +123,13 @@ def get_squad_stats(squad_id, squad_name, urlbase, attr_ref) -> list:
 
               # dicionário contendo as informações do squad
               squad_round = {
-                'squad_id': squad_id,
-                'squad': squad_name,
                 'date': date
               }
               squad_round.update(stats)
 
               if 'date' in squad_round.keys():
                 # executa a função que ajusta os datatypes dos campos
-                squad_round_parsed = parse_fields(squad_round)
+                squad_round_parsed = parse_fields(squad_round, 'squads')
                 squad_attr.append(squad_round_parsed)
 
     except Exception as e:
@@ -137,12 +140,16 @@ def get_squad_stats(squad_id, squad_name, urlbase, attr_ref) -> list:
   return squad_attr
 
 
-def get_squad_comps(squad, urlbase) -> list:
+def get_squad_comps(squad, urlbase) -> Squad:
   squad_ref = squad['href']
   url = urljoin(urlbase, squad_ref)
   rsp = requests.request('GET',url)
-  squad_stats = []
-  attrs = []
+  log_types = []
+  
+  # set club attributes
+  club = Squad()
+  club.id = squad['squad_id']
+  club.name = squad['squad']
 
   if rsp.status_code<400:
     content = rsp.content
@@ -156,35 +163,42 @@ def get_squad_comps(squad, urlbase) -> list:
 
         for option in options:
           if 'current' not in option.attrs['class']:
-            attr_ref = option.find('a').attrs['href']
-            attrs.append(attr_ref)
+            log_ref = option.find('a').attrs['href']
+            log_name = re.subn(r'\n','',option.text)[0]
+            log_type = {'href': log_ref, 'name': log_name}
+
+            log_types.append(log_type)
           else:
-            attrs.append(url)
-  
-        for attr in attrs:
-          squad_name = squad['squad']
-          squad_id = squad['squad_id']
-          attr_stats = get_squad_stats(squad_id, squad_name, urlbase, attr)
-          
-          squad_stats.append(attr_stats)
+            log_name = re.subn(r'\n','',option.text)[0]
+            log_type = {'href': url, 'name': log_name}
+            log_types.append(log_type)
+        
+        for log_type in log_types:
+          attr_stats = get_squad_stats(urlbase, log_type.get('href'))
+          for stat in attr_stats:
+            stat['stats_type'] = log_type.get('name')
+            club.stats.append(stat)
 
-  return squad_stats
+    # get players from squad
+    club.players = get_players(squad_name=club.name, squad_link=squad_ref)
+
+  return club
 
 
-def get_players(squad) -> list:
+def get_players(squad_name, squad_link) -> list:
   """
     Coleta informações básicas sobre os jogadores do clube.\n
     Utilize esse função como ponto de partida para coletar estatisticas dos jogadores através do campo href.\n\n
 
     :param squad: dict correspondente ao objeto squad retornado na função get_squads().
   """
-  players_id = []
-  link = squad['href']
+  squad_players = []
+  link = squad_link
   rsp = requests.request('GET',f'https://fbref.com{link}')
   content = rsp.content
 
   if rsp.status_code<400:
-    logging.info('[+] {logtime} Requisição realizada com sucesso - {squad}.'.format(squad=squad['squad'], logtime=datetime.strftime(datetime.now(),'%c')))
+    logging.info('[+] {logtime} Requisição realizada com sucesso - {squad}.'.format(squad=squad_name, logtime=datetime.strftime(datetime.now(),'%c')))
 
     soup = BeautifulSoup(content, html_parser)
     stats_tables = soup.find_all(attrs={'class':'table_wrapper', 'id':re.compile('stats')})
@@ -208,16 +222,15 @@ def get_players(squad) -> list:
               player = {
                 'name': name,
                 'href': href,
-                'player_id': player_id,
-                'squad_id': squad['squad_id'],
-                'squad': squad['squad']
+                'player_id': player_id
               }
               # coleta as estatisticas totais do jogador e atualiza dicionário
               player.update({stat.attrs['data-stat']: stat.text for stat in td})
+              player_parsed = parse_fields(player, 'players')
               
-              players_id.append(player)
+              squad_players.append(player_parsed)
 
       except Exception as e:
         logging.error('[+] {logtime} Erro ao coletar link dos jogadores: {error}.'.format(error=e,logtime=datetime.strftime(datetime.now(),'%c')))
 
-  return players_id
+  return squad_players

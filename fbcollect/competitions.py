@@ -13,7 +13,7 @@ def get_competitions(url):
   """
   rsp = requests.request('GET',url)
   content = rsp.content
-  competitions_types = ['comps_1_fa_club_league_senior','comps_2_fa_club_league_senior','comps_3_fa_club_league_senior','comps_intl_club_cup','comps_fa_club_cup']
+  competitions_types = ['comps_1_fa_club_league_senior','comps_2_fa_club_league_senior','comps_3_fa_club_league_senior']
   comps = []
 
   if rsp.status_code<400:
