@@ -24,7 +24,6 @@ class Players():
     self.urlbase = urlbase
 
   def players_stats(self, players):
-
     get_stats = partial(pf.get_player_infos, self.urlbase)
 
     with Pool(3) as p:
@@ -41,15 +40,9 @@ class Squads():
   def squads(self):
     """Get statics of squad on all match of competition."""
     squads = sf.get_squads(self.url)
-    get_stats = partial(sf.get_squad_comps, urlbase=self.urlbase)
+    get_stats = partial(sf.get_squad_infos, urlbase=self.urlbase)
 
     with Pool(3) as p:
       result_list = p.map(get_stats, squads)
 
     return result_list
-    
-  def players(self, squad):
-    """Get players info from related squad."""
-    players = sf.get_players(squad)
-
-    return players

@@ -1,12 +1,13 @@
+from urllib.parse import urljoin
 import requests
 from bs4 import BeautifulSoup
 import re
-from urllib.parse import urljoin
 from datetime import datetime
 from dotenv import load_dotenv
 import logging
 import json
 load_dotenv()
+
 logging.basicConfig(filename='footstats.log', filemode='a', level=logging.ERROR, format='%(asctime)s %(message)s', datefmt='%Y/%m/%d %I:%M:%S %p')
 html_parser = 'html.parser'
 
@@ -14,6 +15,8 @@ class Squad:
   def __init__(self) -> None:  
     self.name = str
     self.id = str
+    self.governing_country = str
+    self.manager = str
     self.stats = []
     self.players = []
 
@@ -40,6 +43,7 @@ def parse_fields(entity, type) -> dict:
 
   return entity
 
+
 def get_squads(url) -> list:
   """
     Coleta dados dos clubes da liga.
@@ -49,149 +53,134 @@ def get_squads(url) -> list:
   squads = []
 
   if rsp.status_code<400:
-    try:
-      logging.info('[+] Requisição de squads realizada com sucesso.')
-      
+    try:      
       soup = BeautifulSoup(content, html_parser)
-      comp_info = soup.find(attrs={'id':'info'})
       table_overall = soup.find(attrs={'class':'table_container', 'id': re.compile(r'.+_overall')})
 
       if table_overall:
-        # informações da competição
-        comp_name = comp_info.find('h1', attrs={'itemprop':'name'}).text
-        league = re.subn(r'\n|\t','',comp_name)[0]
-        
         rows = table_overall.find_all('tr')
 
         for row in rows:
           squad = row.find(attrs={'data-stat':'squad'})
           if not squad.name=='th' and squad.find('a'):
               squad_link = squad.find('a')['href']
-              position = row.find(attrs={'data-stat':'rank'}).text
               infos = {td['data-stat']: re.sub(r'^\s','',td.text) for td in row.find_all('td')}
               # dicionário contendo as informações do squad
               squad_info = {
                 'href': squad_link,
-                'squad_id': squad_link.split('/')[3],
-                'position': position,
-                'league_name': league
+                'squad_id': squad_link.split('/')[3]
               }
-
               squad_info.update(infos)
   
               squads.append(squad_info)
-    except Exception as e:
-      logging.error(f'[+] Erro ao coletar squads: {e}.')
+    except Exception as error:
+      logging.error(f'[+] Erro ao coletar squads: {error}.')
   else:
     logging.error(f'[+] Erro ao executar requisição: status_code={rsp.status_code} reason={rsp.reason}')
 
   return squads
 
-
-def get_squad_stats(urlbase, attr_ref) -> list:
-  """
-    Coleta estatísticas do clube em cada rodada.\n
-    Utilize esse função como ponto de partida para coletar estatisticas dos jogadores através do campo href.\n\n
-
-    :param squad: dict correspondente ao objeto squad retornado na função get_squads().
-  """
-  squad_attr = []
-  url = urljoin(urlbase, attr_ref)
+def get_squad_matchs_stats(url):
   rsp = requests.request('GET',url)
   content = rsp.content
+  squad_matchs_stats = [] # array que armazenará todas as rodas do jogador e será retornada na função
 
   if rsp.status_code<400:
     try:
-      content = rsp.content
-      
       soup = BeautifulSoup(content, html_parser)
-      all_matchlogs = soup.find('div',attrs={'id': 'all_matchlogs'})
-      tables = all_matchlogs.find_all(attrs={'class':'stats_table'})
+      table = soup.find(attrs={'class':'stats_table'})
+      table_id = table.attrs['id']
+      tbody = table.find('tbody')
+      rows = tbody.find_all('tr')
 
-      for table in tables:
-        table_id = table.attrs['id']
-        tbody = table.find('tbody')
-        if tbody:
-          rows = tbody.find_all('tr')
+      for row in rows:
+        th = row.find('th')
+        date = th.text or None
+        
+        # executa apenas se o formato de data estiver correto
+        date_pattern = r'\d+-\d+-\d+'
+        if re.match(date_pattern, date):
+          match_stats = {'date': date}
+          
+          if table_id=='matchlogs_against':
+            match_stats.update({'opponent_'+td['data-stat']: re.sub(r'^\s','',td.text) for td in row.find_all('td')})
+          else:
+            match_stats.update({td['data-stat']: re.sub(r'^\s','',td.text) for td in row.find_all('td')})
+          # executa a função que ajusta os datatypes dos campos
+          stats_round_parsed = parse_fields(match_stats, 'squads')
+          
+          squad_matchs_stats.append(stats_round_parsed)
 
-          for row in rows:
-            th = row.find('th')
-            date = th.text
-
-            # executa apenas se o formato de data estiver correto
-            date_pattern = r'\d+-\d+-\d+'
-            if re.match(date_pattern, date):
-              
-              if table_id=='matchlogs_against':
-                stats = {'opponent_'+td['data-stat']: re.sub(r'^\s','',td.text) for td in row.find_all('td')}
-              else:
-                stats = {td['data-stat']: re.sub(r'^\s','',td.text) for td in row.find_all('td')}
-
-              # dicionário contendo as informações do squad
-              squad_round = {
-                'date': date
-              }
-              squad_round.update(stats)
-
-              if 'date' in squad_round.keys():
-                # executa a função que ajusta os datatypes dos campos
-                squad_round_parsed = parse_fields(squad_round, 'squads')
-                squad_attr.append(squad_round_parsed)
-
-    except Exception as e:
-      logging.error(f'[+] Erro ao coletar squads: {e}.')
-  else:
-    logging.error(f'[+] Erro ao executar requisição: status_code={rsp.status_code} reason={rsp.reason}')
-
-  return squad_attr
-
-
-def get_squad_comps(squad, urlbase) -> Squad:
-  squad_ref = squad['href']
-  url = urljoin(urlbase, squad_ref)
-  rsp = requests.request('GET',url)
-  log_types = []
+    except Exception as error:
+      logging.error(f'[+] Erro ao coletar estatisticas do squad: {error}.')
   
-  # set club attributes
-  club = Squad()
-  club.id = squad['squad_id']
-  club.name = squad['squad']
+  return squad_matchs_stats
 
-  if rsp.status_code<400:
-    content = rsp.content
-    
-    soup = BeautifulSoup(content, html_parser)
-    filters = soup.find_all('div',attrs={'class':'filter'})
 
+def get_squad_log_types(urlbase, current_url, filters) -> list:
+  log_types_stats = []
+  log_types = []
+
+  try:
     for filter in filters:
       if re.search(r'Log Types',filter.text): 
         options = filter.find_all('div')
 
         for option in options:
-          if 'current' not in option.attrs['class']:
-            log_ref = option.find('a').attrs['href']
-            log_name = re.subn(r'\n','',option.text)[0]
-            log_type = {'href': log_ref, 'name': log_name}
+          if 'disabled' not in option.attrs.get('class'):
+            if 'current' not in option.attrs['class']:
+              log_ref = option.find('a').attrs['href']
+              log_name = re.subn(r'\n','',option.text)[0]
+              log_type = {'href': log_ref, 'name': log_name}
 
-            log_types.append(log_type)
-          else:
-            log_name = re.subn(r'\n','',option.text)[0]
-            log_type = {'href': url, 'name': log_name}
-            log_types.append(log_type)
+              log_types.append(log_type)
+            else:
+              log_name = re.subn(r'\n','',option.text)[0]
+              log_type = {'href': current_url, 'name': log_name}
+              log_types.append(log_type)
         
         for log_type in log_types:
-          attr_stats = get_squad_stats(urlbase, log_type.get('href'))
+          log_type_url = urljoin(urlbase, log_type.get('href')) 
+          attr_stats = get_squad_matchs_stats(log_type_url)
           for stat in attr_stats:
             stat['stats_type'] = log_type.get('name')
-            club.stats.append(stat)
+            log_types_stats.append(stat)
+  except Exception as error:
+    logging.error(f'Erro ao coletar log types: {error}')
 
-    # get players from squad
-    club.players = get_players(squad_name=club.name, squad_link=squad_ref)
+  return log_types_stats  
 
-  return club
+def get_squad_infos(squad, urlbase) -> Squad:
+  href = squad.get('href')
+  url = urljoin(urlbase, href)
+  rsp = requests.request('GET',url)
+  content = rsp.content
 
+  squad_obj = Squad()
+  squad_obj.id = squad.get('squad_id')
+  squad_obj.name = squad.get('squad')
 
-def get_players(squad_name, squad_link) -> list:
+  if rsp.status_code<400:
+    try:
+      soup = BeautifulSoup(content, html_parser)
+      info_section = soup.find('div',attrs={'id':'info'})
+      filters = soup.find_all('div',attrs={'class':'filter'}) # TODO adicionar string log types
+      players_tables = soup.find_all(attrs={'class':'table_wrapper', 'id':re.compile('stats')})
+
+      infos = [p.text for p in info_section.find_all('p')]
+      governing_country = list(filter(lambda x: re.search(r'Governing Country', x), infos))
+      manager = list(filter(lambda x: re.search(r'Manager', x), infos))
+      squad_obj.governing_country = re.findall('Governing Country:\s(.+)|$',governing_country[0])[0] if len(governing_country)>0 else None 
+      squad_obj.manager = re.findall('Manager:\s(.+)|$',manager[0])[0] if len(manager)>0 else None
+      squad_obj.stats = get_squad_log_types(urlbase, url, filters)
+      squad_obj.players = get_squad_players(players_tables)
+
+    except Exception as error:
+      logging.error(f'Erro ao coletar infos do jogador: {error}')
+  
+  return squad_obj
+
+def get_squad_players(players_tables) -> list:
   """
     Coleta informações básicas sobre os jogadores do clube.\n
     Utilize esse função como ponto de partida para coletar estatisticas dos jogadores através do campo href.\n\n
@@ -199,44 +188,30 @@ def get_players(squad_name, squad_link) -> list:
     :param squad: dict correspondente ao objeto squad retornado na função get_squads().
   """
   squad_players = []
-  link = squad_link
-  rsp = requests.request('GET',f'https://fbref.com{link}')
-  content = rsp.content
 
-  if rsp.status_code<400:
-    logging.info(f'[+] Requisição realizada com sucesso - {squad_name}.')
+  for table in players_tables:
+    try:
+      body = table.find('tbody')
+      if body:
+        rows = body.find_all('tr')
 
-    soup = BeautifulSoup(content, html_parser)
-    stats_tables = soup.find_all(attrs={'class':'table_wrapper', 'id':re.compile('stats')})
+        for row in rows:
+          if row:
+            # separa elementos da tabela
+            th = row.find('th')
+            # define o nome e o link de referencia do jogador
+            name = th.text
+            href = th.find('a').get('href')
+            player_id = href.split('/')[3]
 
-    for table in stats_tables:
-      try:
-        body = table.find('tbody')
-        if body:
-          rows = body.find_all('tr')
+            player = {
+              'name': name,
+              'href': href,
+              'player_id': player_id
+            }
+            squad_players.append(player)
 
-          for row in rows:
-            if row:
-              # separa elementos da tabela
-              th = row.find('th')
-              td = row.find_all('td')
-              # define o nome e o link de referencia do jogador
-              name = th.text
-              href = th.find('a').get('href')
-              player_id = href.split('/')[3]
-
-              player = {
-                'name': name,
-                'href': href,
-                'player_id': player_id
-              }
-              # coleta as estatisticas totais do jogador e atualiza dicionário
-              player.update({stat.attrs['data-stat']: stat.text for stat in td})
-              player_parsed = parse_fields(player, 'players')
-              
-              squad_players.append(player_parsed)
-
-      except Exception as e:
-        logging.error(f'[+] Erro ao coletar link dos jogadores: {e}.')
+    except Exception as e:
+      logging.error(f'[+] Erro ao coletar link dos jogadores: {e}.')
 
   return squad_players

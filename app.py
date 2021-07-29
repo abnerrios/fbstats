@@ -17,7 +17,7 @@ def main():
   db = mongo.fbstats
 
   competitions = fbs.Competitions().competitions()
-
+  players_list = []
 
   for comp in competitions:
     comp_ref = comp.get('href')
@@ -27,19 +27,42 @@ def main():
     # coleta estatisticas da equipe a cada rodada
     squads_stats = squads.squads()
     bar = ChargingBar('Inserindo squads no banco de dados: ', max=len(squads_stats))
-    for squad in squads_stats:
-      db.squads.find_one_and_update({'squad_id':squad.id}, {'$set': {'squad_id': squad.id, 'name': squad.name,'country':comp.get('country').upper()}}, upsert=True)
+    for s in squads_stats:
+      db.squads.find_one_and_update(
+        {'squad_id':s.id}, 
+        {'$set': {'squad_id': s.id, 'name': s.name,'country': s.governing_country, 'manager': s.manager}}, 
+        upsert=True
+      )
 
-      for stats in squad.stats:
-        db.squad_stats.find_one_and_update({'squad_id':squad.id,'date': stats.get('date'), 'stats_type':stats.get('stats_type')},{'$set': stats},upsert=True)
-      
-      #for player in squad.players:
-        #db.players.find_one_and_update({'player_id': player.get('player_id')},{'$set': player}, upsert=True)
+      for stats in s.stats:
+        db.squad_stats.find_one_and_update(
+          {'squad_id':s.id,'date': stats.get('date'), 'stats_type':stats.get('stats_type')},
+          {'$set': stats},
+          upsert=True
+        )
 
-      players = fbs.Players().players_stats(squad.players)
+      for player in s.players:
+        players_list.append(player)
 
       bar.next()
     bar.finish()
+
+  # coleta estatisticas dos jogadores
+  players = fbs.Players().players_stats(players_list)
+
+  for p in players:
+    db.players.find_one_and_update(
+      {'player_id':p.id}, 
+      {'$set': {'player_id': p.id, 'name': p.name, 'full_name': p.full_name, 'position': p.position, 'field_area': p.field_area, 'footed':p.footed, 'height': p.height, 'weight': p.weight, 'born': p.born, 'associated_club': p.associated_club }}, 
+      upsert=True
+    )
+
+    for stats in p.stats:
+      db.player_stats.find_one_and_update(
+        {'player_id':p.id, 'date': stats.get('date'), 'stats_type':stats.get('stats_type')},
+        {'$set': stats},
+        upsert=True
+      )
 
 if __name__=='__main__':
   main()

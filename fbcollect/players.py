@@ -128,7 +128,7 @@ def get_player_infos(urlbase, player) -> Player:
   content = rsp.content
 
   player_obj = Player()
-  player_obj.id = player.get('id')
+  player_obj.id = player.get('player_id')
   player_obj.name = player.get('name')
   player_obj.position = player.get('position')
 
