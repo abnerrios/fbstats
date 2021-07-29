@@ -21,16 +21,22 @@ def parse_fields(entity, type) -> dict:
   meta_file = open('./settings/meta.json')
   meta_file = json.load(meta_file)
   meta = meta_file.get(type)
-  pattern = r'^\d+\.'
+  pattern = r'^[-|+|\d]\d*\.'
 
   for key in list(entity.keys()):
-    to_parse = entity.get(key)
-    # verify if the field has on metadata and if need a transformation
-    if meta.get(key) and to_parse!='':
-      if re.match(pattern, to_parse):
-        entity[key] = float(to_parse) 
-      else:
-        entity[key] = int(re.subn(r'\,','',to_parse.split(' ')[0])[0])
+    try:
+      to_parse = entity.get(key)
+      # verify if the field has on metadata and if need a transformation
+      if meta.get(key):
+        if to_parse=='':
+          entity[key] = None
+        else:
+          if re.match(pattern, to_parse):
+            entity[key] = float(to_parse) 
+          else:
+            entity[key] = int(re.subn(r'\,','',to_parse.split(' ')[0])[0])
+    except Exception as error:
+      logging.error(f'Erro ao converter campo: {error}')
 
   return entity
 
@@ -198,7 +204,7 @@ def get_players(squad_name, squad_link) -> list:
   content = rsp.content
 
   if rsp.status_code<400:
-    logging.info('[+] {logtime} Requisição realizada com sucesso - {squad}.'.format(squad=squad_name, logtime=datetime.strftime(datetime.now(),'%c')))
+    logging.info(f'[+] Requisição realizada com sucesso - {squad_name}.')
 
     soup = BeautifulSoup(content, html_parser)
     stats_tables = soup.find_all(attrs={'class':'table_wrapper', 'id':re.compile('stats')})
@@ -216,7 +222,7 @@ def get_players(squad_name, squad_link) -> list:
               td = row.find_all('td')
               # define o nome e o link de referencia do jogador
               name = th.text
-              href = th.find('a')['href']
+              href = th.find('a').get('href')
               player_id = href.split('/')[3]
 
               player = {
@@ -231,6 +237,6 @@ def get_players(squad_name, squad_link) -> list:
               squad_players.append(player_parsed)
 
       except Exception as e:
-        logging.error('[+] {logtime} Erro ao coletar link dos jogadores: {error}.'.format(error=e,logtime=datetime.strftime(datetime.now(),'%c')))
+        logging.error(f'[+] Erro ao coletar link dos jogadores: {e}.')
 
   return squad_players

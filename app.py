@@ -18,6 +18,7 @@ def main():
 
   competitions = fbs.Competitions().competitions()
 
+
   for comp in competitions:
     comp_ref = comp.get('href')
     squads = fbs.Squads(comp_ref)
@@ -32,8 +33,10 @@ def main():
       for stats in squad.stats:
         db.squad_stats.find_one_and_update({'squad_id':squad.id,'date': stats.get('date'), 'stats_type':stats.get('stats_type')},{'$set': stats},upsert=True)
       
-      for player in squad.players:
-        db.players.find_one_and_update({'player_id': player.get('player_id')},{'$set': player}, upsert=True)
+      #for player in squad.players:
+        #db.players.find_one_and_update({'player_id': player.get('player_id')},{'$set': player}, upsert=True)
+
+      players = fbs.Players().players_stats(squad.players)
 
       bar.next()
     bar.finish()

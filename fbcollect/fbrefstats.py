@@ -6,9 +6,11 @@ from multiprocessing import Pool
 from functools import partial
 from urllib.parse import urljoin
 
+urlbase = 'https://fbref.com/'
+
 class Competitions():
   def __init__(self):
-    self.urlbase = 'https://fbref.com/'
+    self.urlbase = urlbase
     self.path = 'en/comps/'
 
   def competitions(self):
@@ -18,30 +20,21 @@ class Competitions():
     return competitions
 
 class Players():
-  def __init__(self, comp):
-    self.comp_id = comp['comp_id']
-    self.governing_country = comp['country']
-    self.season = comp['season']
-    self.comp_title = comp['title']
+  def __init__(self):
+    self.urlbase = urlbase
 
-  def players_stats(self, squad):
-    players_id = sf.get_players(squad)
-    players = []
+  def players_stats(self, players):
 
-    get_stats = partial(pf.get_player_stats,season=self.season)
+    get_stats = partial(pf.get_player_infos, self.urlbase)
 
     with Pool(3) as p:
-      players_stats = p.map(get_stats, players_id)
-
-    for player in players_stats:
-      for stats in player:
-        players.append(stats)
+      players_stats = p.map(get_stats, players)
     
-    return players
+    return players_stats
 
 class Squads():
   def __init__(self, comp):
-    self.urlbase = 'https://fbref.com/'
+    self.urlbase = urlbase
     self.path = comp
     self.url = urljoin(self.urlbase, self.path)
 
