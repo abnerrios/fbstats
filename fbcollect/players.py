@@ -2,7 +2,7 @@ from urllib.parse import urljoin
 import requests
 from bs4 import BeautifulSoup
 import re
-from datetime import datetime
+from time import sleep
 from dotenv import load_dotenv
 import logging
 import json
@@ -50,6 +50,7 @@ def parse_fields(entity, type) -> dict:
   return entity
 
 def get_player_matchs_stats(url):
+  sleep(3)
   rsp = requests.request('GET',url)
   content = rsp.content
   player_matchs_stats = [] # array que armazenará todas as rodas do jogador e será retornada na função
@@ -81,6 +82,7 @@ def get_player_matchs_stats(url):
 
 
 def get_player_log_types(urlbase, season_ref) -> list:
+  sleep(3)
   url = urljoin(urlbase, season_ref)
   rsp = requests.request('GET',url)
   log_types = []

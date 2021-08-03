@@ -2,7 +2,7 @@ from urllib.parse import urljoin
 import requests
 from bs4 import BeautifulSoup
 import re
-from datetime import datetime
+from time import sleep
 from dotenv import load_dotenv
 import logging
 import json
@@ -81,6 +81,7 @@ def get_squads(url) -> list:
   return squads
 
 def get_squad_matchs_stats(url):
+  sleep(3)
   rsp = requests.request('GET',url)
   content = rsp.content
   squad_matchs_stats = [] # array que armazenará todas as rodas do jogador e será retornada na função
