@@ -8,7 +8,7 @@ import logging
 import json
 load_dotenv()
 
-logging.basicConfig(filename='footstats.log', filemode='a', level=logging.ERROR, format='%(asctime)s %(message)s', datefmt='%Y/%m/%d %I:%M:%S %p')
+logging.basicConfig(filename='footstats.log', filemode='a', level=logging.ERROR, format='%(asctime)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S %p')
 html_parser = 'html.parser'
 
 class Squad:
@@ -200,17 +200,26 @@ def get_squad_players(players_tables) -> list:
           if row:
             # separa elementos da tabela
             th = row.find('th')
+            # separa elementos da tabela
+            td = row.find_all('td')
             # define o nome e o link de referencia do jogador
             name = th.text
             href = th.find('a').get('href')
             player_id = href.split('/')[3]
-
+            
             player = {
-              'name': name,
-              'href': href,
-              'player_id': player_id
-            }
-            squad_players.append(player)
+                'name': name,
+                'href': href,
+                'player_id': player_id
+              }
+            # coleta as estatisticas totais do jogador e atualiza dicionário
+            player.update({stat.attrs['data-stat']: stat.text for stat in td})
+            player['age'] = int(player.get('age').split('-')[0])
+            player['nationality'] = player.get('nationality').split(' ')[-1]
+            # faz parsing dos campos para o tipo correto
+            player_parsed = parse_fields(player, 'players')
+
+            squad_players.append(player_parsed)
 
     except Exception as e:
       logging.error(f'[+] Erro ao coletar link dos jogadores: {e}.')

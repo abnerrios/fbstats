@@ -39,6 +39,17 @@ def main():
           {'$set': stats},
           upsert=True
         )
+      
+      for player in s.players:
+        
+        player.update({'squad_id': s.id})
+
+        db.players.find_one_and_update(
+          {'player_id':player.get('player_id')},
+          {'$set': player},
+          upsert=True
+        )
+
 
       bar.next()
     bar.finish()
