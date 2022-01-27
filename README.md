@@ -1,4 +1,4 @@
-# FBstats
+# FootStats
 
 Colect data from fbref.com base and perform scout analysis.
 

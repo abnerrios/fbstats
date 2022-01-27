@@ -12,12 +12,12 @@ logging.basicConfig(filename='footstats.log', filemode='w', level=logging.ERROR)
 
 def main():
   mongohost = os.getenv('MONGODB_HOST')
-  mongoport = int(os.getenv('MONGODB_PORT'))
-  mongo = MongoClient(host=mongohost, port=mongoport)
+  mongouser = os.getenv('MONGODB_USER')
+  mongopwd = os.getenv('MONGODB_PWD')
+  mongo = MongoClient(f'mongodb+srv://{mongouser}:{mongopwd}@{mongohost}/fbscout?retryWrites=true&w=majority')
   db = mongo.fbstats
 
   competitions = fbs.Competitions().competitions()
-
   for comp in competitions:
     comp_ref = comp.get('href')
     squads = fbs.Squads(comp_ref)
@@ -29,7 +29,7 @@ def main():
     for s in squads_stats:
       db.squads.find_one_and_update(
         {'squad_id':s.id}, 
-        {'$set': {'squad_id': s.id, 'name': s.name,'country': s.governing_country, 'manager': s.manager}}, 
+        {'$set': {'squad_id': s.id, 'name': s.name,'country': s.governing_country, 'manager': s.manager, 'national_league': comp.get('league_name')}}, 
         upsert=True
       )
 
@@ -49,7 +49,6 @@ def main():
           {'$set': player},
           upsert=True
         )
-
 
       bar.next()
     bar.finish()

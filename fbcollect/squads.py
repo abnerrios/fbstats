@@ -6,6 +6,7 @@ from time import sleep
 from dotenv import load_dotenv
 import logging
 import json
+from settings.countries import alpha
 load_dotenv()
 
 logging.basicConfig(filename='footstats.log', filemode='a', level=logging.ERROR, format='%(asctime)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S %p')
@@ -55,24 +56,25 @@ def get_squads(url) -> list:
   if rsp.status_code<400:
     try:      
       soup = BeautifulSoup(content, html_parser)
-      table_overall = soup.find(attrs={'class':'table_container', 'id': re.compile(r'.+_overall')})
+      tables = soup.find_all(attrs={'class':'table_container', 'id': re.compile(r'.+_overall')})
 
-      if table_overall:
-        rows = table_overall.find_all('tr')
+      if tables:
+        for table_overall in tables:
+          rows = table_overall.find_all('tr')
 
-        for row in rows:
-          squad = row.find(attrs={'data-stat':'squad'})
-          if not squad.name=='th' and squad.find('a'):
-              squad_link = squad.find('a')['href']
-              infos = {td['data-stat']: re.sub(r'^\s','',td.text) for td in row.find_all('td')}
-              # dicionário contendo as informações do squad
-              squad_info = {
-                'href': squad_link,
-                'squad_id': squad_link.split('/')[3]
-              }
-              squad_info.update(infos)
-  
-              squads.append(squad_info)
+          for row in rows:
+            squad = row.find(attrs={'data-stat':'squad'})
+            if not squad.name=='th' and squad.find('a'):
+                squad_link = squad.find('a')['href']
+                infos = {td['data-stat']: re.sub(r'^\s','',td.text) for td in row.find_all('td')}
+                # dicionário contendo as informações do squad
+                squad_info = {
+                  'href': squad_link,
+                  'squad_id': squad_link.split('/')[3]
+                }
+                squad_info.update(infos)
+    
+                squads.append(squad_info)
     except Exception as error:
       logging.error(f'[+] Erro ao coletar squads: {error}.')
   else:
@@ -213,9 +215,16 @@ def get_squad_players(players_tables) -> list:
                 'player_id': player_id
               }
             # coleta as estatisticas totais do jogador e atualiza dicionário
-            player.update({stat.attrs['data-stat']: stat.text for stat in td})
+            for stat in td:
+              if stat.attrs['data-stat']=='matches':
+                matches = stat.find('a').get('href')
+                player.update({'matches': matches})
+
+              player.update({stat.attrs['data-stat']: stat.text})
+
+
             player['age'] = int(player.get('age').split('-')[0])
-            player['nationality'] = player.get('nationality').split(' ')[-1]
+            player['nationality'] = alpha.get(player.get('nationality').split(' ')[-1])
             # faz parsing dos campos para o tipo correto
             player_parsed = parse_fields(player, 'players')
 
